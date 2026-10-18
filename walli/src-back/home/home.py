@@ -2,9 +2,11 @@ import os , httpx ,json , asyncio
 from fastapi import FastAPI , HTTPException
 fetch = FastAPI()
 
-param = {"sorting":"random","per_page":12}
 @fetch.get('/')
-async def get_image():
+async def get_image(theme:str):
+    if theme.lower() not in ("all","no-preference"):
+        param["q"]= theme
+    param = {"sorting":"random","per_page":1}
     async with httpx.AsyncClient() as client:
         response =  await client.get("https://wallhaven.cc/api/v1/search",params=param)
         if response.status_code!=200:
@@ -20,3 +22,4 @@ async def get_image():
                 "resolution" : image["resolution"]
         }for image in data]
         }
+
