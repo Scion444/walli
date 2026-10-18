@@ -42,7 +42,7 @@ async def get_image(theme:str, resolutions: list[str] = Query(default=["1080p"])
     result = resolution(resolutions)
     if not result:
         raise HTTPException(400,"select resolution")
-    param = {"sorting":"random","per_page":1,"resolutions": ",".join(result)}
+    param = {"sorting":"random","per_page":12,"resolutions": ",".join(result)}
     if theme.lower() not in ("all","no-preference"):
         param["q"]= theme
     async with httpx.AsyncClient() as client:
@@ -60,4 +60,5 @@ async def get_image(theme:str, resolutions: list[str] = Query(default=["1080p"])
                 "resolution" : image["resolution"]
         }for image in data]
         }
+
 
