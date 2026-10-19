@@ -148,7 +148,6 @@ h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
   display: flex; align-items: center; justify-content: center; min-height: 56px;
   padding-top: 14px; color: var(--muted); font-size: 12.5px;
 }
-a.btn { text-decoration: none; }
 
 .skeleton {
   pointer-events: none; border: 1px solid var(--line);
@@ -156,15 +155,6 @@ a.btn { text-decoration: none; }
   background-size: 200% 100%; animation: shimmer 1.4s linear infinite;
 }
 @keyframes shimmer { to { background-position: -200% 0; } }
-
-/* collections */
-.collections { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
-.collection {
-  display: grid; place-items: center; height: 120px; border: 1px solid var(--line); border-radius: var(--r);
-  background: linear-gradient(135deg, #131b26, #0c1017); font-weight: 600; font-size: 15px;
-  transition: border-color 0.2s, background 0.2s;
-}
-.collection:hover { border-color: var(--line-2); background: linear-gradient(135deg, #1a2433, #0f151e); }
 
 /* notice */
 .notice {

@@ -428,7 +428,6 @@ export default function App() {
     return () => io.disconnect();
   }, [page, loading, images.length, hasMore, moreError]);
 
-  // remember where Home was scrolled to and restore it when coming back
   // hover effects are switched off while scrolling by toggling a class directly on the
   // scroll container (not React state, so scrolling never triggers a re-render)
   const scrollTimer = useRef(null);
@@ -440,6 +439,7 @@ export default function App() {
     clearTimeout(scrollTimer.current);
     scrollTimer.current = setTimeout(() => el.classList.remove("is-scrolling"), 150);
   };
+  // remember where Home was scrolled to and restore it when coming back
   useLayoutEffect(() => {
     if (contentRef.current) contentRef.current.scrollTop = page === "home" ? homeScroll.current : 0;
   }, [page]);
@@ -504,7 +504,7 @@ export default function App() {
       : [greeting(), "Random wallpapers picked for your theme and resolution."],
     mine: ["Saved Wallpapers", "Stored by the backend. Remove any wallpaper with the trash icon."],
     collections: ["Collections", "Something is brewing here."],
-    settings: ["Settings", "Backend and filters."],
+    settings: ["Settings", "App preferences and backend."],
   }[page];
 
   return (
@@ -614,7 +614,7 @@ export default function App() {
 
               <h3 className="group-title">Backend</h3>
               <div className="settings">
-                <SettingRow icon="server" title="Backend URL" desc="Set API_URL in App.jsx.">
+                <SettingRow icon="server" title="Backend URL">
                   <code>{API_URL}</code>
                 </SettingRow>
                 <SettingRow icon="pulse" title="Backend status" desc="Checked when you open this page.">
