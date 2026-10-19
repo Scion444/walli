@@ -3,18 +3,36 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="dark" />
     <title>Walli</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <style>
+      html, body { margin: 0; height: 100%; background: #090d12; color: #7d8896;
+        font-family: system-ui, sans-serif; }
+      .boot { padding: 24px; font-size: 13px; }
+      .boot-error { padding: 24px; color: #ffb4b4; white-space: pre-wrap; font: 12px/1.5 monospace; }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
-    <!-- app.jsx mounts itself, so no main.jsx is needed -->
-    <script type="module" src="/src/app.jsx"></script>
+    <div id="root"><p class="boot">Loading Walli…</p></div>
+    <script>
+      // If the app crashes before drawing, print the reason instead of a black screen
+      function showBootError(msg) {
+        var root = document.getElementById("root");
+        if (root && root.querySelector(".boot")) {
+          root.innerHTML = '<pre class="boot-error"></pre>';
+          root.firstChild.textContent = msg;
+        }
+      }
+      window.addEventListener("error", function (e) { showBootError(e.message); });
+      window.addEventListener("unhandledrejection", function (e) {
+        showBootError(String((e.reason && e.reason.stack) || e.reason));
+      });
+    </script>
+    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
