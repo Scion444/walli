@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./app.jsx"; // must match the file name in src/ exactly
+import App from "./App.jsx"; // must match the file name in src/ exactly
 
 // Shows the real error on screen instead of a black page
 class ErrorBoundary extends React.Component {
