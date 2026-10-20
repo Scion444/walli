@@ -133,11 +133,6 @@ Contributions are **very welcome**, whether it's a bug fix, a new feature, bette
 - New categories and themes
 - Performance improvements
 
-## Notes & Resolved Issues
-
-- **Backend connection on first launch:** Previously, the frontend required a manual reload while the backend sidecar initialized. This has been resolved with automatic `/health` startup polling and retry handling.
-
-Found another problem? [Open an issue](../../issues).
 
 ---
 Found a bug or have an idea? [Open an issue](../../issues), all feedback helps.
