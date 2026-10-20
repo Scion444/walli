@@ -52,18 +52,27 @@ Discover, preview, save and apply beautiful wallpapers in one click.
 
 ```
 walli/
-├── src/                  # Frontend (UI)
-├── src-back/             # Backend
+├── src/                  # Frontend React application
+│   ├── components/       # Reusable UI components (Sidebar, Modal, Card, etc.)
+│   ├── constants/        # Application constants (resolutions, navigation, icons)
+│   ├── services/         # API & backend communication client
+│   └── utils/            # Helper utilities
+├── src-back/             # Python FastAPI backend
 │   └── home/
-│       └── home.py       # Backend logic for the Home feed
-├── assets/               # README images & logo
+│       ├── home.py               # FastAPI application & endpoints
+│       ├── schemas.py            # Pydantic data schemas
+│       ├── storage.py            # Atomic file storage with concurrency lock
+│       └── wallpaper_service.py  # Image validation & desktop wallpaper setter
+├── src-tauri/            # Tauri v2 desktop shell & sidecar configuration
+├── requirements.txt      # Python backend dependencies
 └── README.md
 ```
 
 | Part | Location | What it does |
 |------|----------|--------------|
-| **Frontend** | `src/` | The interface: home feed, search, filters, preview modal, saved wallpapers, collections, settings |
-| **Backend** | `src-back/home/home.py` | Home logic: fetching wallpapers, applying category / resolution filters, shuffle, search |
+| **Frontend** | `walli/src/` | Interface: home feed, search, filters, preview modal, saved wallpapers, collections, settings |
+| **Backend** | `walli/src-back/home/` | FastAPI backend: Wallhaven proxy, filtering, atomic storage, wallpaper application, health check |
+| **Desktop Shell** | `walli/src-tauri/` | Tauri v2 desktop application, system tray, sidecar process manager |
 
 ---
 
@@ -78,22 +87,26 @@ walli/
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/Scion444/walli.git
+git clone https://github.com/utkrishtkrishan-ukg/walli.git
 cd walli
 
-# 2. Install frontend dependencies
-npm install
-
-# 3. Install backend dependencies
+# 2. Install backend dependencies
 pip install -r requirements.txt
+
+# 3. Install frontend dependencies
+cd walli
+npm install
 ```
 
 ### Run in development
 
 ```bash
+# Run the Vite frontend dev server
 npm run dev
-```
 
+# Or run the full Tauri desktop application (with backend sidecar)
+npm run tauri -- dev
+```
 
 ---
 
@@ -110,7 +123,7 @@ Contributions are **very welcome**, whether it's a bug fix, a new feature, bette
 ### Where to work
 
 - UI, styling and interactions → `src/`
-- Wallpaper fetching and Home logic → `src-back/home/home.py`
+- Wallpaper fetching, storage and Home logic → `src-back/home/`
 
 ### Ideas to get you started
 
@@ -120,9 +133,9 @@ Contributions are **very welcome**, whether it's a bug fix, a new feature, bette
 - New categories and themes
 - Performance improvements
 
-## Known Issues
+## Notes & Resolved Issues
 
-- **Backend connection on first launch:** the frontend may ask you to reload the app before it connects to the backend. Reloading once fixes it. A proper fix (automatic retry or a "backend ready" check) is a great first contribution, see `src/` for the connection logic and `src-back/home/home.py` for the backend side.
+- **Backend connection on first launch:** Previously, the frontend required a manual reload while the backend sidecar initialized. This has been resolved with automatic `/health` startup polling and retry handling.
 
 Found another problem? [Open an issue](../../issues).
 

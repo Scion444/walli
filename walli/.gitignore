@@ -7,10 +7,27 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Dependencies
+node_modules/
+
+# Frontend build output
+dist/
+dist-ssr/
 *.local
+
+# PyInstaller build artifacts
+build/
+*.toc
+*.pkg
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyd
+
+# Runtime downloaded files
+src-back/**/wallpaper.*
+src-back/**/saved.json
 
 # Editor directories and files
 .vscode/*

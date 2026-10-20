@@ -1,23 +1,33 @@
-import os, httpx, json, asyncio, re, uvicorn
-from pydantic import BaseModel
-import ctypes
-from urllib.parse import urlparse
+import os
+import sys
+import re
+import httpx
+import uvicorn
+from pathlib import Path
+from typing import List, Dict, Any
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-fetch = FastAPI()
+# Ensure the module directory is in sys.path for direct script execution and PyInstaller
+CURRENT_DIR = Path(__file__).resolve().parent
+if str(CURRENT_DIR) not in sys.path:
+    sys.path.insert(0, str(CURRENT_DIR))
 
-fetch.add_middleware(
+from schemas import ApplyRequest, WallpaperItem, take, Wallpaper
+from storage import storage, DATA_DIR
+from wallpaper_service import validate_image_url, set_desktop_wallpaper
+
+app = FastAPI(title="Walli Backend")
+fetch = app  # Backward compatibility alias
+
+# Allow local frontend development and Tauri webview requests
+app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["Content-Type"],
     allow_credentials=False,
 )
-
-
-DATA_DIR = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "Walli")
-os.makedirs(DATA_DIR, exist_ok=True)
 
 RESOLUTION_PRESETS = {
     "hd": "1280x720",
@@ -32,7 +42,8 @@ RESOLUTION_PRESETS = {
 RES_PATTERN = re.compile(r"^\d{3,5}x\d{3,5}$")
 
 
-def resolution(values: list[str]) -> list[str]:
+def parse_resolutions(values: List[str]) -> List[str]:
+    """Validates and normalizes resolution labels and hints to standard dimensions."""
     result = []
     for value in values:
         for item in value.split(","):
@@ -41,127 +52,102 @@ def resolution(values: list[str]) -> list[str]:
                 continue
             res = RESOLUTION_PRESETS.get(item, item)
             if not RES_PATTERN.match(res):
-                raise HTTPException(400, f"invalid resolution: {item}")
+                raise HTTPException(status_code=400, detail=f"invalid resolution: {item}")
             if res not in result:
                 result.append(res)
     return result
 
 
-@fetch.get("/")
-async def get_image(theme: str, resolutions: list[str] = Query(default=["1080p"])):
-    result = resolution(resolutions)
+resolution = parse_resolutions  # Backward compatibility alias
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for frontend startup polling."""
+    return {"status": "ok"}
+
+
+@app.get("/")
+async def get_image(theme: str, resolutions: List[str] = Query(default=["1080p"])):
+    """Fetches a random page of wallpapers from Wallhaven matching theme and resolutions."""
+    result = parse_resolutions(resolutions)
     if not result:
-        raise HTTPException(400, "select resolution")
+        raise HTTPException(status_code=400, detail="select resolution")
+
     param = {"sorting": "random", "per_page": 24, "resolutions": ",".join(result)}
     if theme.lower() not in ("all", "no-preference"):
         param["q"] = theme
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            "https://wallhaven.cc/api/v1/search", params=param
-        )
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.get("https://wallhaven.cc/api/v1/search", params=param)
+            if response.status_code != 200:
+                raise HTTPException(status_code=500, detail="backend failed")
+            data = response.json().get("data", [])
+            return {
+                "images": [
+                    {
+                        "id": image["id"],
+                        "url": image["path"],
+                        "thumbnail-large": image["thumbs"]["large"],
+                        "thumbnail-original": image["thumbs"]["original"],
+                        "thumbnail-small": image["thumbs"]["small"],
+                        "resolution": image["resolution"],
+                    }
+                    for image in data
+                ]
+            }
+    except httpx.RequestError as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to reach wallpaper provider: {exc}")
+
+
+@app.post("/apply")
+async def apply(item: ApplyRequest):
+    """Downloads the selected wallpaper and sets it as the desktop background."""
+    ext = validate_image_url(item.url)
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(item.url)
         if response.status_code != 200:
-            raise HTTPException(500, "backend failed")
-        data = response.json()["data"]
-        return {
-            "images": [
-                {
-                    "id": image["id"],
-                    "url": image["path"],
-                    "thumbnail-large": image["thumbs"]["large"],
-                    "thumbnail-original": image["thumbs"]["original"],
-                    "thumbnail-small": image["thumbs"]["small"],
-                    "resolution": image["resolution"],
-                }
-                for image in data
-            ]
-        }
-
-
-class take(BaseModel):
-    url: str
-
-
-ALLOWED_HOSTS = {"w.wallhaven.cc", "wallhaven.cc"}
-ALLOWED_EXT = {".jpg", ".jpeg", ".png"}
-
-
-@fetch.post("/apply")
-async def apply(item: take):
-    parsed = urlparse(item.url)
-    ext = os.path.splitext(parsed.path)[1].lower()
-    if (
-        parsed.scheme != "https"
-        or parsed.hostname not in ALLOWED_HOSTS
-        or ext not in ALLOWED_EXT
-    ):
-        raise HTTPException(400, "invalid image url")
-
-    async with httpx.AsyncClient() as apply:
-        response = await apply.get(item.url)
-    if response.status_code != 200:
-        raise HTTPException(500, "image not found")
+            raise HTTPException(status_code=500, detail="image not found")
+    except httpx.RequestError as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to download wallpaper: {exc}")
 
     wallpaper_path = os.path.join(DATA_DIR, f"wallpaper{ext}")
-    with open(wallpaper_path, "wb") as f:
-        f.write(response.content)
+    try:
+        with open(wallpaper_path, "wb") as f:
+            f.write(response.content)
+    except IOError as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to save wallpaper locally: {exc}")
 
-    path = os.path.abspath(wallpaper_path)
-    elon = ctypes.windll.user32
-    if not elon.SystemParametersInfoW(20, 0, path, 3):
+    if not set_desktop_wallpaper(wallpaper_path):
         return {"status": "failed"}
     return {"status": "applied"}
 
 
-
-saved_file = os.path.join(DATA_DIR, "saved.json")
-
-
-def load_saved() -> list[dict]:
-    if not os.path.exists(saved_file):
-        return []
-    try:
-        with open(saved_file, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, IOError):
-        return []
-
-
-def write_saved():
-    with open(saved_file, "w", encoding="utf-8") as f:
-        json.dump(saved, f, indent=2)
-
-
-class Wallpaper(BaseModel):
-    id: str
-    url: str
-    thumbnail_large: str | None = None
-    resolution: str | None = None
-
-
-saved: list[dict] = load_saved()
-
-
-@fetch.post("/saved")
-async def saved_image(item: dict):
-    if not any(s.get("id") == item.get("id") for s in saved):
-        saved.insert(0, item)
-        write_saved()
-    return {"images": saved}
-
-
-@fetch.get("/saved")
+@app.get("/saved")
 async def get_saved():
-    return {"images": saved}
+    """Returns all saved wallpapers."""
+    return {"images": await storage.get_all()}
 
 
-@fetch.delete("/saved")
-async def del_saved(item: dict):
-    for s in saved:
-        if s.get("id") == item.get("id"):
-            saved.remove(s)
-            write_saved()
-            break
-    return {"images": saved}
+@app.post("/saved")
+async def saved_image(item: Dict[str, Any]):
+    """Adds a wallpaper to the saved list if not already present."""
+    updated = await storage.add(item)
+    return {"images": updated}
+
+
+@app.delete("/saved")
+async def del_saved(item: Dict[str, Any]):
+    """Removes a wallpaper from the saved list by its id."""
+    updated = await storage.remove(item.get("id"))
+    return {"images": updated}
+
+
+# Expose saved for backward compatibility
+saved = storage.saved
 
 
 if __name__ == "__main__":
