@@ -1,0 +1,13 @@
+# Walli Backend Dependencies
+# FastAPI framework and ASGI web server
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+
+# HTTP client for Wallhaven API and image downloads
+httpx>=0.27.0
+
+# Data validation and models
+pydantic>=2.9.0
+
+# Packaging dependency for building Tauri sidecar executable (build_backend.py)
+pyinstaller>=6.10.0
