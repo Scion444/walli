@@ -165,4 +165,4 @@ async def del_saved(item: dict):
 
 
 if __name__ == "__main__":
-    uvicorn.run(fetch, host="127.0.0.1", port=8756, log_config=None)
+    uvicorn.run(fetch, host="127.0.0.1", port=8000, log_config=None)

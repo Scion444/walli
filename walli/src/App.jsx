@@ -3,7 +3,7 @@ import "./App.css";
 
 /* ---------------------------------------------------------------- config */
 
-const API_URL = "http://127.0.0.1:8756"; // FastAPI backend (home.py)
+const API_URL = "http://127.0.0.1:8000"; // FastAPI backend (home.py)
 
 const CATEGORIES = ["All", "Nature", "Anime", "Minimal", "Gaming", "City", "Abstract", "Technology"];
 
