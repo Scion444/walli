@@ -18,8 +18,29 @@ pub fn run() {
         .setup(|app| {
             // ── Spawn the Python backend sidecar ─────────────────────
             let sidecar = app.shell().sidecar("backend").expect("failed to locate backend sidecar");
-            let (_, child) = sidecar.spawn().expect("failed to spawn backend sidecar");
+            let (mut rx, child) = sidecar.spawn().expect("failed to spawn backend sidecar");
             *app.state::<Backend>().0.lock().unwrap() = Some(child);
+
+            tauri::async_runtime::spawn(async move {
+                use tauri_plugin_shell::process::CommandEvent;
+                while let Some(event) = rx.recv().await {
+                    match event {
+                        CommandEvent::Stdout(line) => {
+                            println!("[backend] {}", String::from_utf8_lossy(&line));
+                        }
+                        CommandEvent::Stderr(line) => {
+                            eprintln!("[backend] {}", String::from_utf8_lossy(&line));
+                        }
+                        CommandEvent::Error(err) => {
+                            eprintln!("[backend error] {}", err);
+                        }
+                        CommandEvent::Terminated(status) => {
+                            eprintln!("[backend terminated] {:?}", status);
+                        }
+                        _ => {}
+                    }
+                }
+            });
 
             // ── System-tray icon + menu ──────────────────────────────
             let show = MenuItem::with_id(app, "show", "Show Walli", true, None::<&str>)?;

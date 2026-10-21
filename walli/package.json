@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build:backend": "python build_backend.py",
+    "build": "python build_backend.py && vite build",
     "preview": "vite preview",
     "tauri": "tauri"
   },

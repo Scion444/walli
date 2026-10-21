@@ -8,7 +8,10 @@ from typing import List, Dict, Any
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-# Ensure the module directory is in sys.path for direct script execution and PyInstaller
+# Ensure module directory and PyInstaller bundle dir are in sys.path
+if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+    if sys._MEIPASS not in sys.path:
+        sys.path.insert(0, sys._MEIPASS)
 CURRENT_DIR = Path(__file__).resolve().parent
 if str(CURRENT_DIR) not in sys.path:
     sys.path.insert(0, str(CURRENT_DIR))

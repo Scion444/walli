@@ -5,7 +5,18 @@ import subprocess, shutil, os
 SRC = os.path.join("src-back", "home", "home.py")
 OUT_NAME = "backend"
 BINARIES_DIR = os.path.join("src-tauri", "binaries")
-TARGET_TRIPLE = "x86_64-pc-windows-msvc"
+def get_target_triple():
+    try:
+        out = subprocess.check_output(["rustc", "-vV"], text=True)
+        for line in out.splitlines():
+            if line.startswith("host:"):
+                return line.split(":", 1)[1].strip()
+    except Exception:
+        pass
+    return "x86_64-pc-windows-msvc"
+
+TARGET_TRIPLE = get_target_triple()
+print(f"==> Target triple: {TARGET_TRIPLE}")
 
 os.makedirs(BINARIES_DIR, exist_ok=True)
 
@@ -17,6 +28,11 @@ subprocess.run(
         "--noconfirm",
         "--clean",
         "--name", OUT_NAME,
+        "--paths", os.path.join("src-back", "home"),
+        "--collect-all", "uvicorn",
+        "--hidden-import", "schemas",
+        "--hidden-import", "storage",
+        "--hidden-import", "wallpaper_service",
         "--distpath", BINARIES_DIR,
         SRC,
     ],
