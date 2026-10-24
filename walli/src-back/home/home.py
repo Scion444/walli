@@ -7,8 +7,6 @@ from pathlib import Path
 from typing import List, Dict, Any
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-
-# Ensure module directory and PyInstaller bundle dir are in sys.path
 if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
     if sys._MEIPASS not in sys.path:
         sys.path.insert(0, sys._MEIPASS)
@@ -21,9 +19,8 @@ from storage import storage, DATA_DIR
 from wallpaper_service import validate_image_url, set_desktop_wallpaper
 
 app = FastAPI(title="Walli Backend")
-fetch = app  # Backward compatibility alias
+fetch = app 
 
-# Allow local frontend development and Tauri webview requests
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=r"^(https?://(localhost|127\.0\.0\.1|tauri\.localhost)(:\d+)?|tauri://localhost)$",
@@ -77,7 +74,7 @@ async def get_image(theme: str, resolutions: List[str] = Query(default=["1080p"]
     if not result:
         raise HTTPException(status_code=400, detail="select resolution")
 
-    param = {"sorting": "random", "per_page": 24, "resolutions": ",".join(result)}
+    param = {"sorting": "random", "per_page": 50, "resolutions": ",".join(result)}
     if theme.lower() not in ("all", "no-preference"):
         param["q"] = theme
 
